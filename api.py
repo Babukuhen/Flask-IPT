@@ -39,6 +39,22 @@ def get_employee_by_id(id):
     return make_response(jsonify(data), 200)
 
 
+@app.route("/employee/<int:id>/department", methods=["GET"])
+def get_department_by_employee(id):
+    # Gets Department Location by Employee ID
+    query = f"""
+    SELECT department.department_location
+    FROM employee
+    INNER JOIN department 
+    ON employee.department_id = department.department_id 
+    WHERE employee.employee_id = {id}
+    """
+    data = data_fetch(query)
+    if not data:
+        return make_response(jsonify({"Message": "Employee not found"}), 404)
+    return make_response(jsonify({"Department Location": data[0]["department_location"]}), 200)
+
+
 @app.route("/employee", methods=["POST"])
 def add_employee():
     pass
