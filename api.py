@@ -76,7 +76,21 @@ def add_employee():
 
 @app.route("/employee/<int:id>", methods=["PUT"])
 def update_employee(id):
-    pass
+    # Updates Employee from the Database
+    cur = mysql.connection.cursor()
+    info = request.get_json()
+    first_name = info["first_name"]
+    last_name = info["last_name"]
+    department_id = info["department_id"]
+
+    cur.execute("""UPDATE employee SET first_name = %s, last_name = %s, department_id = %s WHERE employee_id = %s """,
+        (first_name, last_name, department_id, id))
+    mysql.connection.commit()
+
+    print(f"Row(s) Affected :{cur.rowcount}")
+    rows_affected = cur.rowcount
+    cur.close()
+    return make_response(jsonify({"Message": f"Employee '{id}' Updated Successfully", "Rows Affected": rows_affected}), 200,)
 
 
 @app.route("/employee/<int:id>", methods=["DELETE"])
