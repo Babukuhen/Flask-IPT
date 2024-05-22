@@ -1,4 +1,4 @@
-from flask import Flask, make_response, jsonify
+from flask import Flask, make_response, jsonify, request
 from flask_mysqldb import MySQL
 
 app = Flask(__name__)
@@ -57,17 +57,39 @@ def get_department_by_employee(id):
 
 @app.route("/employee", methods=["POST"])
 def add_employee():
-    pass
+    # Adds Employee to the Database
+    cur = mysql.connection.cursor()
+    info = request.get_json()
+    first_name = info["first_name"]
+    last_name = info["last_name"]
+    department_id = info["department_id"]
+
+    cur.execute("""INSERT INTO employee (first_name, last_name, department_id) VALUE (%s, %s, %s)""",
+        (first_name, last_name, department_id))
+    mysql.connection.commit()
+    
+    print(f"Row(s) Affected :{cur.rowcount}")
+    rows_affected = cur.rowcount
+    cur.close()
+    return make_response(jsonify({"Message": "Employee Added Successfully", "Rows Affected": rows_affected}), 201)
 
 
-@app.route("/employee/<int:id>", methods=["PUT"])                       # FIX
+@app.route("/employee/<int:id>", methods=["PUT"])
 def update_employee(id):
     pass
 
 
 @app.route("/employee/<int:id>", methods=["DELETE"])
 def delete_employee(id):
-    pass
+    # Deletes Employee from the Database
+    cur = mysql.connection.cursor()
+    cur.execute(f"""DELETE FROM employee where employee_id = {id}""")
+    mysql.connection.commit()
+
+    print(f"Row(s) Affected :{cur.rowcount}")
+    rows_affected = cur.rowcount
+    cur.close()
+    return make_response(jsonify({"Message": f"Employee '{id}' Deleted Successfully", "Rows Affected": rows_affected}), 200)
 
 
 @app.route("/employee/format", methods=["GET"])
