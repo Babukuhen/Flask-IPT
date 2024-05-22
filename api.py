@@ -4,7 +4,7 @@ from flask_mysqldb import MySQL
 app = Flask(__name__)
 app.config["MYSQL_HOST"] = "localhost"
 app.config["MYSQL_USER"] = "root"
-app.config["MYSQL_PASSWORD"] = "676jvllavan"
+app.config["MYSQL_PASSWORD"] = ""       # Enter Your Password
 app.config["MYSQL_DB"] = "emp_dep_db"
 
 app.config["MYSQL_CURSORCLASS"] = "DictCursor"
@@ -68,7 +68,6 @@ def add_employee():
         (first_name, last_name, department_id))
     mysql.connection.commit()
     
-    print(f"Row(s) Affected :{cur.rowcount}")
     rows_affected = cur.rowcount
     cur.close()
     return make_response(jsonify({"Message": "Employee Added Successfully", "Rows Affected": rows_affected}), 201)
@@ -87,10 +86,9 @@ def update_employee(id):
         (first_name, last_name, department_id, id))
     mysql.connection.commit()
 
-    print(f"Row(s) Affected :{cur.rowcount}")
     rows_affected = cur.rowcount
     cur.close()
-    return make_response(jsonify({"Message": f"Employee '{id}' Updated Successfully", "Rows Affected": rows_affected}), 200,)
+    return make_response(jsonify({"Message": f"Employee '{id}' Updated Successfully", "Rows Affected": rows_affected}), 200)
 
 
 @app.route("/employee/<int:id>", methods=["DELETE"])
@@ -100,7 +98,6 @@ def delete_employee(id):
     cur.execute(f"""DELETE FROM employee where employee_id = {id}""")
     mysql.connection.commit()
 
-    print(f"Row(s) Affected :{cur.rowcount}")
     rows_affected = cur.rowcount
     cur.close()
     return make_response(jsonify({"Message": f"Employee '{id}' Deleted Successfully", "Rows Affected": rows_affected}), 200)
