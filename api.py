@@ -1,10 +1,12 @@
-from flask import Flask, make_response, jsonify, request
+from flask import Flask, make_response, jsonify, request, Response
 from flask_mysqldb import MySQL
+import dicttoxml
+from xml.dom.minidom import parseString
 
 app = Flask(__name__)
 app.config["MYSQL_HOST"] = "localhost"
 app.config["MYSQL_USER"] = "root"
-app.config["MYSQL_PASSWORD"] = ""       # Enter Your Password
+app.config["MYSQL_PASSWORD"] = "676jvllavan"       # Enter Your Password
 app.config["MYSQL_DB"] = "emp_dep_db"
 
 app.config["MYSQL_CURSORCLASS"] = "DictCursor"
@@ -25,18 +27,30 @@ def data_fetch(query):
     return data
 
 
+def format_response(data, format):
+    if format == "xml":
+        xml = dicttoxml.dicttoxml(data, custom_root='response', attr_type=False)
+        dom = parseString(xml)
+        xml_str = dom.toprettyxml()
+        return Response(xml_str, mimetype='application/xml')
+    else:
+        return make_response(jsonify(data), 200)
+
+
 @app.route("/employee", methods=["GET"])
 def get_employee():
     # Get All Employee Details
     data = data_fetch("""SELECT * FROM employee""")
-    return make_response(jsonify(data), 200)
+    response_format = request.args.get('format', 'json')
+    return format_response(data, response_format)
 
 
 @app.route("/employee/<int:id>", methods=["GET"])
 def get_employee_by_id(id):
     # Get Employee by Employee ID
     data = data_fetch(f"""SELECT * FROM employee WHERE employee_id = {id}""")
-    return make_response(jsonify(data), 200)
+    response_format = request.args.get('format', 'json')
+    return format_response(data, response_format)
 
 
 @app.route("/employee/<int:id>/department", methods=["GET"])
@@ -50,9 +64,10 @@ def get_department_by_employee(id):
     WHERE employee.employee_id = {id}
     """
     data = data_fetch(query)
+    response_format = request.args.get('format', 'json')
     if not data:
-        return make_response(jsonify({"Message": "Employee not found"}), 404)
-    return make_response(jsonify({"Department Location": data[0]["department_location"]}), 200)
+        return make_response(jsonify({"message": "Employee not found"}), 404)
+    return format_response({"Department Location": data[0]["department_location"]}, response_format)
 
 
 @app.route("/employee", methods=["POST"])
@@ -70,7 +85,16 @@ def add_employee():
     
     rows_affected = cur.rowcount
     cur.close()
-    return make_response(jsonify({"Message": "Employee Added Successfully", "Rows Affected": rows_affected}), 201)
+    
+    response_format = request.args.get('format', 'json')
+    response_data = {"message": "Employee Added Successfully", "rows_affected": f"Rows Affected: {rows_affected}"}
+    if response_format == "xml":
+        xml = dicttoxml.dicttoxml(response_data, custom_root='response', attr_type=False)
+        dom = parseString(xml)
+        xml_str = dom.toprettyxml()
+        return Response(xml_str, mimetype='application/xml'), 201
+    else:
+        return make_response(jsonify(response_data), 201)
 
 
 @app.route("/employee/<int:id>", methods=["PUT"])
@@ -88,7 +112,8 @@ def update_employee(id):
 
     rows_affected = cur.rowcount
     cur.close()
-    return make_response(jsonify({"Message": f"Employee '{id}' Updated Successfully", "Rows Affected": rows_affected}), 200)
+    response_format = request.args.get('format', 'json')
+    return format_response({"message": f"Employee '{id}' Updated Successfully", "rows_affected": f"Rows Affected: {rows_affected}"}, response_format)
 
 
 @app.route("/employee/<int:id>", methods=["DELETE"])
@@ -100,14 +125,15 @@ def delete_employee(id):
 
     rows_affected = cur.rowcount
     cur.close()
-    return make_response(jsonify({"Message": f"Employee '{id}' Deleted Successfully", "Rows Affected": rows_affected}), 200)
+    response_format = request.args.get('format', 'json')
+    return format_response({"message": f"Employee '{id}' Deleted Successfully", "rows_affected": f"Rows Affected: {rows_affected}"}, response_format)
 
 
 @app.route("/employee/format", methods=["GET"])
 def get_params():
-    fmt = request.args.get('id')
+    fmt = request.args.get('format', 'json')
     foo = request.args.get('aaaa')
-    return make_response(jsonify({"format":fmt, "foo":foo}),200)
+    return make_response(jsonify({"format": fmt, "foo": foo}), 200)
 
 
 if __name__ == "__main__":
