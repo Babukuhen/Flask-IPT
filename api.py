@@ -2,6 +2,9 @@ from flask import Flask, make_response, jsonify, request, Response, render_templ
 from flask_mysqldb import MySQL
 import dicttoxml
 from xml.dom.minidom import parseString
+import jwt
+from datetime import datetime, timedelta, timezone
+from functools import wraps
 
 
 app = Flask(__name__)
@@ -9,15 +12,47 @@ app.config["MYSQL_HOST"] = "localhost"
 app.config["MYSQL_USER"] = "root"
 app.config["MYSQL_PASSWORD"] = "676jvllavan"       # Enter Your Password
 app.config["MYSQL_DB"] = "emp_dep_db"
-
 app.config["MYSQL_CURSORCLASS"] = "DictCursor"
-
 mysql = MySQL(app)
 
 
-@app.route("/")
-def page_display():
-    return "<p>Hello, World!</p>"
+app.config['JWT_SECRET_KEY'] = 'your_secret_key'
+
+
+############################################################
+
+
+@app.route("/", methods=["GET"])
+def front():
+    return render_template("login.html")
+
+
+@app.route("/login", methods=["POST"])
+def login():
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    if username == 'admin' and password == 'admin':
+        token = jwt.encode({'exp': datetime.now(timezone.utc) + timedelta(minutes=30)}, app.config['JWT_SECRET_KEY'])
+        return jsonify({'token': token})
+    return make_response('Could Not Verify!', 401, {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.args.get('token')
+        if not token:
+            return jsonify({'message': 'Token is Missing!'}), 403
+        try:
+            decoded_token = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=["HS256"])
+        except:
+            return jsonify({'message': 'Token is Invalid!'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+############################################################
 
 
 def data_fetch(query, params=None):
@@ -41,7 +76,11 @@ def format_response(data, format):
         return make_response(jsonify(data), 200)
 
 
+############################################################
+
+
 @app.route("/employee", methods=["GET"])
+@token_required
 def get_employee():
     # Get All Employee Details
     data = data_fetch("""SELECT * FROM employee""")
@@ -50,6 +89,7 @@ def get_employee():
 
 
 @app.route("/employee/<int:id>", methods=["GET"])
+@token_required
 def get_employee_by_id(id):
     # Get Employee by Employee ID
     data = data_fetch(f"""SELECT * FROM employee WHERE employee_id = {id}""")
@@ -58,6 +98,7 @@ def get_employee_by_id(id):
 
 
 @app.route("/employee/<int:id>/department", methods=["GET"])
+@token_required
 def get_department_by_employee(id):
     # Gets Department Location by Employee ID
     query = f"""
@@ -134,18 +175,23 @@ def delete_employee(id):
 
 
 @app.route("/employee/format", methods=["GET"])
+@token_required
 def get_params():
     fmt = request.args.get('format', 'json')
-    foo = request.args.get('aaaa')
-    return make_response(jsonify({"format": fmt, "foo": foo}), 200)
+    return make_response(jsonify({"format": fmt}), 200)
+
+
+############################################################
 
 
 @app.route("/search", methods=["GET"])
+@token_required
 def search():
     return render_template("search.html")
 
 
 @app.route("/search/results", methods=["GET"])
+@token_required
 def search_results():
     first_name = request.args.get('first_name')
     last_name = request.args.get('last_name')
@@ -166,6 +212,9 @@ def search_results():
 
     data = data_fetch(query, params)
     return render_template("search_results.html", results=data)
+
+
+############################################################
 
 
 if __name__ == "__main__":
