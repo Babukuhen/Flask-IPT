@@ -1,7 +1,8 @@
-from flask import Flask, make_response, jsonify, request, Response
+from flask import Flask, make_response, jsonify, request, Response, render_template
 from flask_mysqldb import MySQL
 import dicttoxml
 from xml.dom.minidom import parseString
+
 
 app = Flask(__name__)
 app.config["MYSQL_HOST"] = "localhost"
@@ -19,9 +20,12 @@ def page_display():
     return "<p>Hello, World!</p>"
 
 
-def data_fetch(query):
+def data_fetch(query, params=None):
     cur = mysql.connection.cursor()
-    cur.execute(query)
+    if params:
+        cur.execute(query, params)
+    else:
+        cur.execute(query)
     data = cur.fetchall()
     cur.close()
     return data
@@ -134,6 +138,34 @@ def get_params():
     fmt = request.args.get('format', 'json')
     foo = request.args.get('aaaa')
     return make_response(jsonify({"format": fmt, "foo": foo}), 200)
+
+
+@app.route("/search", methods=["GET"])
+def search():
+    return render_template("search.html")
+
+
+@app.route("/search/results", methods=["GET"])
+def search_results():
+    first_name = request.args.get('first_name')
+    last_name = request.args.get('last_name')
+    department_id = request.args.get('department_id')
+
+    query = "SELECT * FROM employee WHERE 1=1"
+    params = []
+
+    if first_name:
+        query += " AND first_name LIKE %s"
+        params.append(f"%{first_name}%")
+    if last_name:
+        query += " AND last_name LIKE %s"
+        params.append(f"%{last_name}%")
+    if department_id:
+        query += " AND department_id = %s"
+        params.append(department_id)
+
+    data = data_fetch(query, params)
+    return render_template("search_results.html", results=data)
 
 
 if __name__ == "__main__":
