@@ -10,7 +10,7 @@ from functools import wraps
 app = Flask(__name__)
 app.config["MYSQL_HOST"] = "localhost"
 app.config["MYSQL_USER"] = "root"
-app.config["MYSQL_PASSWORD"] = "676jvllavan"       # Enter Your Password
+app.config["MYSQL_PASSWORD"] = ""       # Enter Your SQL Password Here
 app.config["MYSQL_DB"] = "emp_dep_db"
 app.config["MYSQL_CURSORCLASS"] = "DictCursor"
 mysql = MySQL(app)
@@ -18,6 +18,7 @@ mysql = MySQL(app)
 
 app.config['JWT_SECRET_KEY'] = 'your_secret_key'
 
+token_lock = True
 
 ############################################################
 
@@ -41,6 +42,9 @@ def login():
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if not token_lock:
+            return f(*args, **kwargs)
+        
         token = request.args.get('token')
         if not token:
             return jsonify({'message': 'Token is Missing!'}), 403
@@ -116,6 +120,7 @@ def get_department_by_employee(id):
 
 
 @app.route("/employee", methods=["POST"])
+@token_required
 def add_employee():
     # Adds Employee to the Database
     cur = mysql.connection.cursor()
@@ -143,6 +148,7 @@ def add_employee():
 
 
 @app.route("/employee/<int:id>", methods=["PUT"])
+@token_required
 def update_employee(id):
     # Updates Employee from the Database
     cur = mysql.connection.cursor()
@@ -162,6 +168,7 @@ def update_employee(id):
 
 
 @app.route("/employee/<int:id>", methods=["DELETE"])
+@token_required
 def delete_employee(id):
     # Deletes Employee from the Database
     cur = mysql.connection.cursor()
