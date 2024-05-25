@@ -2,6 +2,8 @@ import unittest
 import warnings
 from api import app
 
+# TESTING DOESN'T TAKE INTO ACCOUNT THE TOKEN REQUIREMENT
+# MAKE SURE TO DISABLE TOKEN REQUIREMENT TO TEST PROPERLY
 
 class MyAppTests(unittest.TestCase):
     def setUp(self):
@@ -13,7 +15,8 @@ class MyAppTests(unittest.TestCase):
     def test_index_page(self):
         response = self.app.get("/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.decode(), "<p>Hello, World!</p>")
+        self.assertIn(b"<!DOCTYPE html>", response.data)
+        self.assertIn(b"<title>Login</title>", response.data)
         print()
 
     def test_get_employee(self):
@@ -35,7 +38,7 @@ class MyAppTests(unittest.TestCase):
         print()
 
     def test_add_employee(self):
-        new_employee = {"first_name": "Jane", "last_name": "Doe", "department_id": 1}
+        new_employee = {"first_name": "Jane", "last_name": "Da", "department_id": 1}
         response = self.app.post("/employee", json=new_employee)
         self.assertEqual(response.status_code, 201)
         self.assertTrue("Employee Added Successfully" in response.data.decode())
@@ -43,15 +46,15 @@ class MyAppTests(unittest.TestCase):
     
     def test_update_employee(self):
         updated_employee = {"first_name": "Jane", "last_name": "Smith", "department_id": 1}
-        response = self.app.put("/employee/21", json=updated_employee)
+        response = self.app.put("/employee/64", json=updated_employee)      # YOU CAN CHANGE ID 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue("Employee '21' Updated Successfully" in response.data.decode())
+        self.assertTrue("Employee '64' Updated Successfully" in response.data.decode())
         print()
 
     def test_delete_employee(self):
-        response = self.app.delete("/employee/21")
+        response = self.app.delete("/employee/64")                          # YOU CAN CHANGE ID 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue("Employee '21' Deleted Successfully" in response.data.decode())
+        self.assertTrue("Employee '64' Deleted Successfully" in response.data.decode())
         print()
 
 
